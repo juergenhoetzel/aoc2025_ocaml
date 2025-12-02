@@ -8,15 +8,20 @@ let parse =
       else None)
 
 let dial rotations =
-  List.fold_left
-    (fun acc x -> ((List.hd acc + x + 100) mod 100) :: acc)
-    [ 50 ] rotations
+  List.fold_left (fun acc x -> (List.hd acc + x) :: acc) [ 50 ] rotations
+
+(* Solve part2 in terms of part1 *)
+let dial_single_step =
+ fun x -> List.init (abs x) (fun _ -> if x < 0 then -1 else 1)
 
 let () =
-  let n =
-    In_channel.input_lines stdin
-    |> parse |> dial
-    |> List.filter (fun x -> x = 0)
-    |> List.length
+  let steps = In_channel.input_lines stdin |> parse in
+  let dials = dial steps in
+  let dials_single_step =
+    steps |> List.map dial_single_step |> List.concat |> dial
   in
-  Format.printf "%d\n%!" n
+  List.iter
+    (fun dials ->
+      List.filter (fun x -> x mod 100 = 0) dials
+      |> List.length |> Format.printf "%d\n")
+    [ dials; dials_single_step ]
