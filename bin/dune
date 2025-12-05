@@ -1,3 +1,3 @@
 (executables
- (public_names day1 day2 day3 day4)
+ (public_names day1 day2 day3 day4 day5)
  (libraries aoc str))
