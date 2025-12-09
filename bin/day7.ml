@@ -1,47 +1,48 @@
-(* FIXME: Move to lib *)
-module Coord = struct
-  type t = int * int
-
-  let compare = compare
-end
-
-module Positions = Set.Make (Coord)
+module IntSet = Set.Make (Int)
+module IntMap = Map.Make (Int)
 
 let parse s =
-  let beam_positions = Positions.empty in
-  let splitter_positions = Positions.empty in
-  Seq.fold_left
-    (fun (splitter_positions, beam_positions, y, x) c ->
-      match c with
-      | '\n' -> (splitter_positions, beam_positions, y + 1, 0)
-      | 'S' ->
-          (splitter_positions, Positions.add (y, x) beam_positions, y, x + 1)
-      | '^' ->
-          (Positions.add (y, x) splitter_positions, beam_positions, y, x + 1)
-      | '.' -> (splitter_positions, beam_positions, y, x + 1)
-      | _ -> invalid_arg s)
-    (splitter_positions, beam_positions, 0, 0)
-    (String.to_seq s)
+  let lines = String.split_on_char '\n' s in
+  let beams =
+    String.to_seq (List.hd lines)
+    |> Seq.mapi (fun x c -> if c = 'S' then (x, 1) else (x, 0))
+    |> IntMap.of_seq
+  in
+  let splitters =
+    List.map
+      (fun line ->
+        String.to_seq line
+        |> Seq.mapi (fun x c -> if c = '^' then Some x else None)
+        |> Seq.filter_map Fun.id |> IntSet.of_seq)
+      (List.tl lines)
+  in
+  (beams, splitters)
 
-let move splitter_positions beam_positions =
-  Positions.to_list beam_positions
-  |> List.fold_left
-       (fun (new_beam_positions, splits) (y, x) ->
-         if Positions.mem (y + 1, x) splitter_positions then
-           ( Positions.add (y + 1, x + 1) new_beam_positions
-             |> Positions.add (y + 1, x - 1),
-             splits + 1 )
-         else (Positions.add (y + 1, x) new_beam_positions, splits))
-       (Positions.empty, 0)
+let move splitters beams =
+  let new_counts =
+    List.map
+      (fun (x, count) ->
+        if IntSet.mem x splitters then [ (x - 1, count); (x + 1, count) ]
+        else [ (x, count) ])
+      (IntMap.to_list beams)
+    |> List.concat
+  in
+  ( List.fold_left
+      (fun beams (x, count) ->
+        IntMap.update x
+          (function None -> Some count | Some count2 -> Some (count + count2))
+          beams)
+      IntMap.empty new_counts,
+    List.length new_counts - IntMap.cardinal beams )
 
 let () =
-  let splitter_positions, beam_positions, y_size, _ =
-    parse (In_channel.input_all stdin)
+  let beams, splitters = parse (In_channel.input_all stdin) in
+  let final_beams, splits =
+    List.fold_left
+      (fun (beams, splits) splitters ->
+        let beams, new_splits = move splitters beams in
+        (beams, new_splits + splits))
+      (beams, 0) splitters
   in
-  let rec loop acc beam_positions =
-    let beam_positions, splits = move splitter_positions beam_positions in
-    if Positions.to_list beam_positions |> List.hd |> fst > y_size then acc
-    else loop (acc + splits) beam_positions
-  in
-  let splits = loop 0 beam_positions in
-  Printf.printf "%d\n%!" splits
+  let timelines = IntMap.fold (fun _ c acc -> acc + c) final_beams 0 in
+  Printf.printf "%d\n%d\n%!" splits timelines
