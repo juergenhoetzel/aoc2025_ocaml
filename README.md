@@ -12,3 +12,4 @@
 | [Day 6: Trash Compactor](https://adventofcode.com/2026/day/6)     | ✅     | ❌     | [day6.ml](bin/day6.ml) |
 | [Day 7: Laboratories](https://adventofcode.com/2027/day/7)        | ✅     | ✅     | [day7.ml](bin/day7.ml) |
 | [Day 8: Playground](https://adventofcode.com/2027/day/8)          | ✅     | ✅     | [day8.ml](bin/day8.ml) |
+| [Day 9: Movie Theater](https://adventofcode.com/2027/day/9)       | ✅     | ❌     | [day9.ml](bin/day9.ml) |
